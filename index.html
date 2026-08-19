@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tilbudsevaluering – Novaform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+  :root{
+    --bg:#0e1217;--panel:#161d26;--panel2:#1c2530;--line:#2a3744;
+    --ink:#e8edf2;--mut:#8aa0b4;--acc:#ff7a18;--good:#36c98d;--warn:#e6b800;--bad:#ff5a5a;
+    --mono:'JetBrains Mono',Consolas,monospace;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;line-height:1.5;
+    background-image:radial-gradient(circle at 15% 0%,#1a2531 0,transparent 45%),radial-gradient(circle at 90% 8%,#241a14 0,transparent 40%);min-height:100vh}
+  header{padding:22px 30px 16px;border-bottom:1px solid var(--line)}
+  .badge{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--acc);border:1px solid var(--acc);padding:3px 9px;border-radius:2px;margin-bottom:9px}
+  h1{font-weight:900;font-size:28px;letter-spacing:-.02em}h1 span{color:var(--acc)}
+  .sub{color:var(--mut);font-size:13px;max-width:680px;margin-top:5px}
+  main{padding:20px 30px 80px;max-width:1500px;margin:0 auto}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);flex-wrap:wrap;margin-top:4px}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--mut);font-weight:600;font-size:14px;padding:12px 15px;cursor:pointer;margin-bottom:-1px}
+  .tab.on{color:var(--ink);font-weight:800;border-bottom-color:var(--acc)}
+  .sec{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--mut);text-transform:uppercase;margin:26px 0 12px;display:flex;align-items:center;gap:12px}
+  .sec::after{content:'';flex:1;height:1px;background:var(--line)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px}
+  .drop{border:2px dashed var(--line);border-radius:10px;padding:24px;text-align:center;background:var(--panel);cursor:pointer;transition:.15s}
+  .drop:hover{border-color:var(--acc)}
+  .fmt{color:var(--good);font-family:var(--mono);font-size:11px;margin-top:7px}
+  label.lb{display:block;font-size:10px;letter-spacing:.06em;color:var(--mut);text-transform:uppercase;margin-bottom:3px}
+  input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:5px;padding:8px 10px;font-size:13px;font-family:'Archivo'}
+  input:focus,select,textarea:focus{outline:none;border-color:var(--acc)}
+  button.btn{font-weight:700;font-size:14px;border:none;border-radius:6px;padding:10px 16px;cursor:pointer;background:var(--acc);color:#1a0d00}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  button.sm{font-size:12px;padding:5px 10px;border-radius:5px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{background:var(--panel2);padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--mut)}
+  td{padding:9px 12px;border-top:1px solid var(--line)}
+  .mono{font-family:var(--mono)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .tag{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:3px;border:1px solid var(--line);color:var(--mut)}
+  .overlay{position:fixed;inset:0;background:rgba(10,14,18,.86);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:100}
+  .overlay.on{display:flex}
+  .spin{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:s 1s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .banner{background:var(--panel2);border:1px solid var(--warn);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--warn);margin-bottom:14px}
+  .hidden{display:none}
+  .grid4{display:grid;grid-template-columns:1.3fr 1fr .9fr 1.3fr;gap:10}
+  @media(max-width:700px){.grid4{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <span class="badge">NOVAFORM · ANBUDSEVALUERING</span>
+  <h1>Tilbuds<span>evaluering</span> <span style="font-size:13px;color:var(--mut);font-weight:400">· nettbasert</span></h1>
+  <p class="sub">Nettbasert versjon. Prosjekter lagres lokalt i nettleseren, med eksport/import til fil for sikkerhetskopi. AI-funksjonene bruker din egen Anthropic-nøkkel.</p>
+</header>
+<main>
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+</main>
+<div class="overlay" id="overlay"><div class="spin"></div><div class="mono" id="busy" style="font-size:13px"></div></div>
+
+<script type="module">
+// ---------- konfig / state ----------
+const cfg = {
+  aiKey: localStorage.getItem("aiKey")||"",
+};
+const LSKEY="tilbud_prosjekter"; // localStorage-nøkkel for alle prosjekter
+function lesAlle(){ try{return JSON.parse(localStorage.getItem(LSKEY)||"[]");}catch(_){return [];} }
+function skrivAlle(arr){ localStorage.setItem(LSKEY, JSON.stringify(arr)); }
+
+const CRITERIA = [
+  {key:"pris",label:"Pris"},{key:"oppdrag",label:"Oppdragsforståelse"},
+  {key:"kompetanse",label:"Kompetanse / CV"},{key:"fremdrift",label:"Fremdrift / tid"},
+  {key:"forbehold",label:"Forbehold / avvik"},
+];
+
+let state = {
+  prosjektId:null, prosjektNavn:"",
+  spec:"", offers:[], vedlegg:[], brev:[],
+  weights:{pris:30,oppdrag:30,kompetanse:20,fremdrift:10,forbehold:10},
+  postMatrix:null, forbeholdMatrix:null, innstilling:null, oppdragOrder:null,
+};
+let tab = "evaluering";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+// ---------- hjelpere ----------
+const $=id=>document.getElementById(id);
+const busy=(t)=>{ $("busy").textContent=t||""; $("overlay").classList.toggle("on",!!t); };
+const num=s=>{const v=parseFloat(String(s).replace(/\s|kr|nok/gi,"").replace(/\.(?=\d{3}(\D|$))/g,"").replace(",",".").replace(/[^\d.\-]/g,""));return isNaN(v)?0:Math.round(v);};
+const fmt=n=>Number(n||0).toLocaleString("nb-NO")+" kr";
+const esc=s=>(s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const tilEks=(p,mva)=>{const x=Number(p)||0;return mva==="inkl"?Math.round(x/1.25):x;};
+
+function parseLoose(raw){
+  if(!raw) throw new Error("tomt svar");
+  let s=raw.replace(/```json|```/gi,"").trim();
+  const i=s.indexOf("{"); if(i>0)s=s.slice(i);
+  try{return JSON.parse(s);}catch(_){}
+  let inStr=false,esc2=false,depth=0,lastComma=-1;
+  for(let k=0;k<s.length;k++){const c=s[k];if(esc2){esc2=false;continue;}if(c==="\\"){esc2=true;continue;}if(c==='"'){inStr=!inStr;continue;}if(inStr)continue;if(c==="{"||c==="[")depth++;else if(c==="}"||c==="]")depth--;else if(c===","&&depth<=2)lastComma=k;}
+  let fixed=s;
+  if(inStr&&lastComma>0)fixed=s.slice(0,lastComma);else if(inStr)fixed+='"';
+  inStr=false;esc2=false;const st=[];
+  for(let k=0;k<fixed.length;k++){const c=fixed[k];if(esc2){esc2=false;continue;}if(c==="\\"){esc2=true;continue;}if(c==='"'){inStr=!inStr;continue;}if(inStr)continue;if(c==="{")st.push("}");else if(c==="[")st.push("]");else if(c==="}"||c==="]")st.pop();}
+  if(inStr)fixed+='"';while(st.length)fixed+=st.pop();
+  fixed=fixed.replace(/,\s*([}\]])/g,"$1");
+  return JSON.parse(fixed);
+}
+
+// ---------- AI-kall (egen nøkkel, direkte fra nettleser) ----------
+const MODELLER = ["claude-sonnet-4-5","claude-sonnet-4-20250514","claude-3-7-sonnet-latest","claude-3-5-sonnet-latest","claude-3-5-haiku-latest"];
+let valgtModell = localStorage.getItem("aiModel")||null;
+async function ai(content, maxTokens=1000, system=null){
+  if(!cfg.aiKey) throw new Error("Mangler Anthropic API-nøkkel (sett den i Oppsett).");
+  const kandidater = valgtModell ? [valgtModell, ...MODELLER.filter(m=>m!==valgtModell)] : MODELLER;
+  let sisteFeil="";
+  for(const modell of kandidater){
+    const body={model:modell,max_tokens:maxTokens,messages:[{role:"user",content}]};
+    if(system) body.system=system;
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":cfg.aiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify(body)
+    });
+    if(resp.ok){
+      if(valgtModell!==modell){ valgtModell=modell; localStorage.setItem("aiModel",modell); }
+      const data=await resp.json();
+      return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim();
+    }
+    const t=await resp.text();
+    // 404 = modell finnes ikke -> prøv neste. Andre feil (401/429 osv.) -> stopp med en gang.
+    if(resp.status===404){ sisteFeil="404 "+t.slice(0,120); continue; }
+    throw new Error("AI-feil "+resp.status+": "+t.slice(0,200));
+  }
+  throw new Error("Ingen tilgjengelig modell funnet. "+sisteFeil);
+}
+
+// ---------- filinnlesing ----------
+async function readFile(f){
+  const ext=f.name.split(".").pop().toLowerCase();
+  if(ext==="pdf"){
+    const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;
+    let t="";for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const c=await pg.getTextContent();t+=c.items.map(x=>x.str).join(" ")+"\n";}
+    let images=null;
+    if(t.replace(/\s/g,"").length<40){
+      images=[];const maxS=Math.min(pdf.numPages,8);
+      for(let i=1;i<=maxS;i++){const pg=await pdf.getPage(i);const vp=pg.getViewport({scale:2.0});const cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;await pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;images.push(cv.toDataURL("image/jpeg",0.7).split(",")[1]);}
+    }
+    return {text:t,type:"PDF",images};
+  }
+  if(ext==="docx"){const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});return {text:r.value,type:"DOCX"};}
+  if(["xlsx","xls","csv"].includes(ext)){
+    const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});let t="";const rows=[];
+    wb.SheetNames.forEach(n=>{t+="["+n+"]\n"+XLSX.utils.sheet_to_csv(wb.Sheets[n])+"\n";XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:""}).forEach(r=>rows.push(r));});
+    return {text:t,type:ext.toUpperCase(),rows};
+  }
+  return {text:await f.text(),type:"TXT"};
+}
+function postsFromRows(rows){
+  if(!rows||!rows.length)return[];
+  const kw={postnr:/^(post(nr)?|nr|kode|ns\s?3451)$/i,epris:/enhetspris|enh\.?\s?pris|pris\s?pr|à-?pris|a-pris/i,sum:/^(sum|beløp|belop|total(sum)?|linjesum|postsum)$/i,mengde:/mengde|antall|kvant/i,enhet:/^(enhet|enh\.?|måleenhet)$/i,beskr:/beskriv|tekst|ytelse|arbeid|betegnelse/i};
+  let hIdx=-1,hMap=null,best=1;
+  for(let i=0;i<Math.min(rows.length,25);i++){const cells=rows[i].map(c=>String(c).trim().toLowerCase());const map={};const used=new Set();let hits=0;["postnr","epris","sum","mengde","enhet","beskr"].forEach(k=>{const ci=cells.findIndex((c,idx)=>!used.has(idx)&&kw[k].test(c));if(ci>=0){map[k]=ci;used.add(ci);hits++;}});if(hits>best){best=hits;hIdx=i;hMap=map;}}
+  if(hIdx<0||!hMap||(hMap.beskr==null&&hMap.postnr==null))return[];
+  const out=[];
+  for(let i=hIdx+1;i<rows.length;i++){const r=rows[i];if(!r||r.every(c=>String(c).trim()===""))continue;
+    const beskr=hMap.beskr!=null?String(r[hMap.beskr]||"").trim():"";const postnr=hMap.postnr!=null?String(r[hMap.postnr]||"").trim():"";
+    const sum=hMap.sum!=null?num(r[hMap.sum]):null;const epris=hMap.epris!=null?num(r[hMap.epris]):null;const mengde=hMap.mengde!=null?num(r[hMap.mengde]):null;const enhet=hMap.enhet!=null?String(r[hMap.enhet]||"").trim():"";
+    if(!beskr&&!postnr)continue;if(!beskr&&!sum&&!epris)continue;
+    out.push({postnr,beskrivelse:beskr,mengde,enhet,enhetspris:epris,sum});}
+  return out;
+}
+function guessCompany(t,fn){const m=t.match(/\b([A-ZÆØÅ][\wæøåA-ZÆØÅ&\- ]{2,40}?\s(?:AS|ASA|ANS|DA))\b/);return m?m[1].trim():fn.replace(/\.[^.]+$/,"");}
+function guessPrice(t){
+  const norm=(t||"").replace(/\u00a0/g," ");
+  const re=/(?:tilbudssum|kontraktssum|totalsum|sum|total|pris)([^\d]{0,40})([\d \.]{4,}(?:,\d{2})?)([^\n]{0,25})/gi;
+  let m,c=[];while((m=re.exec(norm))){const v=num(m[2]);if(!v)continue;const a=(m[1]+" "+m[3]).toLowerCase();let mva="ukjent";if(/inkl|inklusiv|m\.?\s?mva|med\s?mva/.test(a))mva="inkl";else if(/eks|ekskl|u\.?\s?mva|uten\s?mva|netto/.test(a))mva="eks";c.push({v,mva});}
+  if(c.length){const eks=c.filter(x=>x.mva==="eks");if(eks.length)return{price:Math.max(...eks.map(x=>x.v)),mva:"eks"};const b=c.reduce((a,b)=>b.v>a.v?b:a);return{price:b.v,mva:b.mva};}
+  return {price:0,mva:"ukjent"};
+}
+
+// ---------- render-rammeverk ----------
+const TABS=[["oppsett","Oppsett"],["evaluering","Evaluering"],["brev","Tilbudsbrev"],["vedlegg","Vedlegg / CV"],["forbehold","Forbehold"],["innstilling","Innstilling"]];
+function renderTabs(){
+  $("tabs").innerHTML=TABS.map(([k,l])=>`<button class="tab ${tab===k?"on":""}" data-tab="${k}">${l}${k==="evaluering"&&state.offers.length?` (${state.offers.length})`:""}</button>`).join("");
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render();});
+}
+function render(){ renderTabs(); const v=$("view"); v.innerHTML="";
+  if(tab==="oppsett") return renderOppsett(v);
+  if(tab==="evaluering") return renderEvaluering(v);
+  if(tab==="brev") return renderBrev(v);
+  if(tab==="vedlegg") return renderVedlegg(v);
+  if(tab==="forbehold") return renderForbehold(v);
+  if(tab==="innstilling") return renderInnstilling(v);
+}
+
+// ---------- OPPSETT ----------
+function renderOppsett(v){
+  v.innerHTML=`
+  <div class="sec">Oppsett – API-nøkkel</div>
+  <div class="card" style="max-width:640px">
+    <p style="color:var(--mut);font-size:13px;margin-bottom:14px">Anthropic-nøkkelen lagres kun lokalt i din nettleser, aldri i koden. Hent den på console.anthropic.com → API Keys.</p>
+    <div style="display:grid;gap:12px">
+      <div><label class="lb">Anthropic API-nøkkel</label><input id="i_ai" value="${esc(cfg.aiKey)}" placeholder="sk-ant-..."></div>
+      <div class="row">
+        <button class="btn" id="save_cfg">Lagre nøkkel</button>
+        <span id="cfg_msg" style="font-size:13px">${cfg.aiKey?'<span style="color:var(--good)">Nøkkel lagret ✓</span>':""}</span>
+      </div>
+    </div>
+  </div>
+  <div class="sec">Prosjekter (lagret i nettleseren)</div>
+  <div class="card" style="max-width:640px">
+    <div class="row" style="margin-bottom:12px">
+      <input id="p_navn" placeholder="Nytt prosjektnavn (f.eks. Døves Kultursenter)" style="flex:1;min-width:200px">
+      <button class="btn" id="p_ny">Nytt prosjekt</button>
+    </div>
+    <div id="p_liste" style="color:var(--mut);font-size:13px"></div>
+  </div>
+  <div class="sec">Sikkerhetskopi / flytt mellom PC-er</div>
+  <div class="card" style="max-width:640px">
+    <p style="color:var(--mut);font-size:13px;margin-bottom:12px">Eksporter gjeldende prosjekt til en fil du kan lagre (f.eks. på Novaform-serveren), og åpne den igjen her – også på en annen PC.</p>
+    <div class="row">
+      <button class="btn ghost" id="p_export">Eksporter gjeldende prosjekt (.json)</button>
+      <label class="btn ghost" style="cursor:pointer">Importer prosjektfil<input type="file" id="p_import" accept=".json" class="hidden"></label>
+    </div>
+  </div>`;
+  $("save_cfg").onclick=()=>{cfg.aiKey=$("i_ai").value.trim();localStorage.setItem("aiKey",cfg.aiKey);$("cfg_msg").innerHTML='<span style="color:var(--good)">Lagret ✓</span>';};
+  $("p_ny").onclick=()=>{const navn=$("p_navn").value.trim();if(!navn)return alert("Skriv et navn");state={...state,prosjektId:null,prosjektNavn:navn,spec:"",offers:[],vedlegg:[],brev:[],postMatrix:null,forbeholdMatrix:null,innstilling:null,oppdragOrder:null};lagre();tab="evaluering";render();};
+  $("p_export").onclick=eksporterProsjekt;
+  $("p_import").onchange=e=>{const f=e.target.files[0];if(f)importerProsjekt(f);};
+  listeProsjekter();
+}
+function listeProsjekter(){
+  const el=$("p_liste"); if(!el)return;
+  const alle=lesAlle();
+  el.innerHTML = alle.length ? alle.sort((a,b)=>b.oppdatert.localeCompare(a.oppdatert)).map(p=>`<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:8px 0">
+    <span><b>${esc(p.navn)}</b> <span class="tag">${new Date(p.oppdatert).toLocaleString("nb-NO")}</span></span>
+    <span class="row"><button class="btn sm" data-open="${p.id}">Åpne</button><button class="btn ghost sm" data-del="${p.id}">Slett</button></span></div>`).join("") : "Ingen lagrede prosjekter ennå.";
+  el.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>åpneProsjekt(b.dataset.open));
+  el.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Slette prosjektet?")){skrivAlle(lesAlle().filter(p=>p.id!=b.dataset.del));listeProsjekter();}});
+}
+function åpneProsjekt(id){
+  const p=lesAlle().find(x=>x.id==id); if(!p)return alert("Fant ikke prosjektet.");
+  state={...state,...p.data,prosjektId:p.id,prosjektNavn:p.navn};tab="evaluering";render();
+}
+function lagre(){
+  if(!state.prosjektNavn){ state.prosjektNavn="Uten navn"; }
+  if(!state.prosjektId){ state.prosjektId="p_"+Date.now()+"_"+Math.random().toString(36).slice(2,6); }
+  const alle=lesAlle();
+  const rad={id:state.prosjektId,navn:state.prosjektNavn,oppdatert:new Date().toISOString(),data:pakkState()};
+  const i=alle.findIndex(p=>p.id===state.prosjektId);
+  if(i>=0)alle[i]=rad; else alle.push(rad);
+  try{ skrivAlle(alle); }
+  catch(e){ alert("Kunne ikke lagre lokalt (nettleserlageret kan være fullt). Eksporter til fil i stedet. "+e.message); }
+}
+function pakkState(){
+  const strip=o=>({...o,file:undefined}); // behold bilder så bilde-PDF fungerer etter åpning
+  return {spec:state.spec,weights:state.weights,oppdragOrder:state.oppdragOrder,
+    offers:state.offers.map(strip),vedlegg:state.vedlegg.map(v=>({...v,file:undefined})),
+    brev:state.brev.map(b=>({...b,file:undefined})),
+    postMatrix:state.postMatrix,forbeholdMatrix:state.forbeholdMatrix,innstilling:state.innstilling};
+}
+function eksporterProsjekt(){
+  if(!state.offers.length && !state.spec)return alert("Ingenting å eksportere ennå.");
+  const rad={navn:state.prosjektNavn||"Tilbudsevaluering",oppdatert:new Date().toISOString(),data:pakkState()};
+  const blob=new Blob([JSON.stringify(rad,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=(state.prosjektNavn||"prosjekt")+".json";a.click();URL.revokeObjectURL(a.href);
+}
+async function importerProsjekt(f){
+  busy("Importerer…");
+  try{const txt=await f.text();const rad=JSON.parse(txt);
+    state={...state,...(rad.data||{}),prosjektId:null,prosjektNavn:rad.navn||"Importert prosjekt"};
+    lagre();tab="evaluering";}
+  catch(e){alert("Kunne ikke importere: "+e.message);}
+  busy("");render();
+}
+
+// ---------- EVALUERING-fane ----------
+function renderEvaluering(v){
+  v.innerHTML=`
+  <div class="row" style="justify-content:space-between;margin-bottom:8px">
+    <div><b>${esc(state.prosjektNavn||"(uten prosjekt)")}</b> <span class="tag">${state.prosjektId?"lagret":"ulagret"}</span></div>
+    <div class="row"><button class="btn sm" id="e_lagre">Lagre prosjekt</button></div>
+  </div>
+  <div class="sec">1 · Funksjonsbeskrivelse (grunnlag)</div>
+  <div class="card">
+    <textarea id="e_spec" style="min-height:110px;font-family:var(--mono);font-size:12px" placeholder="Lim inn funksjonsbeskrivelsen, eller last opp fil…">${esc(state.spec)}</textarea>
+    <div class="row" style="margin-top:10px"><input type="file" id="e_specfile" accept=".pdf,.docx,.txt" style="max-width:280px"></div>
+  </div>
+  <div class="sec">2 · Tilbud (${state.offers.length}/10)</div>
+  <div class="drop" id="e_drop"><div style="font-weight:800">Slipp tilbudsfiler her, eller klikk</div><div class="fmt">PDF · DOCX · XLSX · XLS · CSV · TXT</div></div>
+  <input type="file" id="e_files" multiple accept=".pdf,.docx,.xlsx,.xls,.csv,.txt" class="hidden">
+  <div id="e_offers" style="display:grid;gap:10px;margin-top:14px"></div>
+  <div class="sec">3 · Vekting</div>
+  <div class="card"><div class="row" id="e_weights"></div></div>
+  <div class="row" style="margin-top:16px">
+    <button class="btn" id="e_run">${state.offers.some(o=>o.ai)?"↻ Kjør AI-evaluering på nytt":"Kjør AI-evaluering"}</button>
+    <button class="btn ghost" id="e_excel">Eksporter til Excel</button>
+    <button class="btn ghost" id="e_clear">Tøm alt</button>
+  </div>
+  <div class="sec">4 · Resultat</div>
+  <div id="e_result"></div>`;
+
+  $("e_spec").oninput=e=>state.spec=e.target.value;
+  $("e_specfile").onchange=async e=>{const f=e.target.files[0];if(!f)return;busy("Leser funksjonsbeskrivelse…");try{const {text}=await readFile(f);state.spec=text;}catch(x){alert(x.message);}busy("");render();};
+  $("e_lagre").onclick=lagre;
+  $("e_drop").onclick=()=>$("e_files").click();
+  $("e_drop").ondragover=e=>e.preventDefault();
+  $("e_drop").ondrop=e=>{e.preventDefault();addFiles(e.dataTransfer.files);};
+  $("e_files").onchange=e=>addFiles(e.target.files);
+  $("e_run").onclick=evaluate;
+  $("e_excel").onclick=exportXlsx;
+  $("e_clear").onclick=()=>{if(confirm("Tømme alt i dette prosjektet?")){Object.assign(state,{spec:"",offers:[],vedlegg:[],brev:[],postMatrix:null,forbeholdMatrix:null,innstilling:null,oppdragOrder:null});render();}};
+
+  $("e_weights").innerHTML=CRITERIA.map(c=>`<div><label class="lb">${c.label}</label><input type="number" min="0" max="100" style="width:80px" value="${state.weights[c.key]}" data-w="${c.key}"></div>`).join("")+`<div style="align-self:end" class="mono" id="wsum"></div>`;
+  const upW=()=>{const s=Object.values(state.weights).reduce((a,b)=>a+Number(b),0);$("wsum").innerHTML=`Sum: ${s}%`;$("wsum").style.color=s===100?"var(--good)":"var(--warn)";};
+  document.querySelectorAll("[data-w]").forEach(i=>i.oninput=()=>{state.weights[i.dataset.w]=Number(i.value)||0;upW();renderResult();});
+  upW(); renderOffers(); renderResult();
+}
+
+function renderOffers(){
+  const c=$("e_offers"); if(!c)return;
+  c.innerHTML=state.offers.map(o=>`
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>${esc(o.company||o.name)} <span class="tag">${o.type}</span>${o.images?'<span class="tag" style="color:var(--warn);border-color:var(--warn)">BILDE-PDF</span>':""}</b>
+        <span class="row"><button class="btn ghost sm" data-reread="${o.id}">↻ Les på nytt</button><button class="btn ghost sm" data-delo="${o.id}">✕</button></span>
+      </div>
+      <div class="grid4" style="margin-top:10px">
+        <div><label class="lb">Firma</label><input value="${esc(o.company)}" data-f="company" data-id="${o.id}"></div>
+        <div><label class="lb">Tilbudssum ${(!o.price)?'<span style="color:var(--warn)">· mangler</span>':""}</label><input value="${o.price||""}" data-f="price" data-id="${o.id}" placeholder="skriv inn sum"></div>
+        <div><label class="lb">Mva</label><select data-f="mva" data-id="${o.id}"><option value="eks"${o.mva==="eks"?" selected":""}>Eks. mva</option><option value="inkl"${o.mva==="inkl"?" selected":""}>Inkl. mva</option><option value="ukjent"${o.mva==="ukjent"?" selected":""}>Ukjent</option></select></div>
+        <div><label class="lb">Notat</label><input value="${esc(o.note||"")}" data-f="note" data-id="${o.id}"></div>
+      </div>
+      ${o.images&&!o.price?`<div class="row" style="margin-top:9px"><button class="btn sm" data-readsum="${o.id}">↻ Les tall fra bilde</button><span style="font-size:12px;color:var(--mut)">eller skriv summen manuelt</span></div>`:""}
+      ${o.ai?`<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:9px;font-size:12.5px"><div>${esc(o.ai.sammendrag||"")}</div>${o.ai.begrunnelse?`<div style="color:var(--mut);border-left:2px solid var(--line);padding-left:10px;margin-top:6px">${esc(o.ai.begrunnelse)}</div>`:""}</div>`:""}
+    </div>`).join("");
+  c.querySelectorAll("[data-f]").forEach(el=>{el.oninput=el.onchange=()=>{const o=state.offers.find(x=>x.id==el.dataset.id);if(!o)return;const f=el.dataset.f;o[f]=f==="price"?num(el.value):el.value;renderResult();};});
+  c.querySelectorAll("[data-delo]").forEach(b=>b.onclick=()=>{state.offers=state.offers.filter(x=>x.id!=b.dataset.delo);render();});
+  c.querySelectorAll("[data-reread]").forEach(b=>b.onclick=()=>reReadOffer(b.dataset.reread));
+  c.querySelectorAll("[data-readsum]").forEach(b=>b.onclick=()=>lesTallFraBilde(b.dataset.readsum));
+}
+
+async function addFiles(list){
+  const room=10-state.offers.length; if(room<=0)return alert("Maks 10 tilbud.");
+  for(const f of [...list].slice(0,room)){busy("Leser "+f.name+"…");
+    try{const {text,type,rows,images}=await readFile(f);const pg=guessPrice(text);const ep=postsFromRows(rows);
+      state.offers.push({id:Date.now()+"_"+Math.random().toString(36).slice(2,7),name:f.name,type,text,images:images||null,file:f,company:guessCompany(text,f.name),price:pg.price,mva:pg.mva,scores:{},ai:null,note:"",excelPoster:ep,posterKilde:ep.length?"excel":null});
+    }catch(e){alert("Feil ved "+f.name+": "+e.message);}}
+  busy("");render();
+}
+async function reReadOffer(id){const o=state.offers.find(x=>x.id==id);if(!o||!o.file)return alert("Last opp filen igjen for å lese på nytt.");busy("Leser "+o.name+" på nytt…");try{const {text,type,rows,images}=await readFile(o.file);const pg=guessPrice(text);const ep=postsFromRows(rows);Object.assign(o,{text,type,images:images||null,price:pg.price||o.price,mva:pg.mva,excelPoster:ep,posterKilde:ep.length?"excel":null,scores:{},ai:null,poster:[]});}catch(e){alert(e.message);}busy("");render();}
+async function lesTallFraBilde(id){const o=state.offers.find(x=>x.id==id);if(!o||!o.images)return;busy("Leser totalsum fra bilde…");let funnet=null;try{for(let i=0;i<o.images.length&&!funnet;i++){const pp="Bildet viser en side fra en byggkalkyle/tilbud. Finn den totale tilbudssummen (Sum/Sum Fag/Selvkost/Totalsum/Tilbudssum, normalt eks. mva). Svar KUN JSON: {\"tilbudssum\":<heltall eller null>,\"mva\":\"eks\"|\"inkl\"|\"ukjent\"}";const txt=await ai([{type:"text",text:pp},{type:"image",source:{type:"base64",media_type:"image/jpeg",data:o.images[i]}}]);if(txt){const j=parseLoose(txt);if(Number(j.tilbudssum)>0)funnet={sum:Math.round(Number(j.tilbudssum)),mva:j.mva||"eks"};}}}catch(e){alert("Kunne ikke lese: "+e.message);}busy("");if(funnet){o.price=funnet.sum;o.mva=funnet.mva==="ukjent"?"eks":funnet.mva;}else alert("Fant ikke summen. Skriv den inn manuelt.");render();}
+
+async function evaluate(){
+  if(!state.spec.trim())return alert("Legg inn funksjonsbeskrivelsen først.");
+  if(!state.offers.length)return alert("Last opp minst ett tilbud.");
+  for(let idx=0;idx<state.offers.length;idx++){const o=state.offers[idx];
+    busy(`AI vurderer ${o.company||o.name} (${idx+1}/${state.offers.length})…`);
+    try{
+      const bygg=(sN,tN)=>`Du er en erfaren rådgiver i bygg/anlegg som evaluerer et tilbud mot en funksjonsbeskrivelse.
+
+=== FUNKSJONSBESKRIVELSE ===
+${state.spec.slice(0,sN)}
+
+=== TILBUD FRA "${o.company||o.name}" ===
+${o.images&&o.images.length?"(Bilde-PDF uten tekstlag – les tabell/tall fra bildene.)":o.text.slice(0,tN)}
+${(()=>{const vv=state.vedlegg.filter(x=>x.koblet===(o.company||o.name));return vv.length?"\n=== VEDLEGG (CV) ===\n"+vv.map(x=>`[${x.name}]\n${(x.text||"").slice(0,1500)}`).join("\n\n"):"";})()}
+
+Vurder 0-100 for hvert kriterium og begrunn konkret:
+- oppdrag: dekning av funksjonsbeskrivelsen
+- kompetanse: CV, referanser, kapasitet
+- fremdrift: realistisk/tydelig fremdrift
+- forbehold: færre/mindre tyngende gir høyere score
+
+Svar KUN med gyldig JSON, konsist:
+{"oppdrag":<0-100>,"kompetanse":<0-100>,"fremdrift":<0-100>,"forbehold":<0-100>,"tilbudssum":<eks.mva tall eller null>,"begrunnelse":"<3-4 setninger>","sammendrag":"<1-2 setn>","styrker":["..",".."],"svakheter":["..",".."],"avvik":[".."]}`;
+      const specLen=state.spec.length, tekstLen=(o.images&&o.images.length)?0:(o.text||"").length, TOTAL=11000;
+      let sB,tB; if(specLen+tekstLen<=TOTAL){sB=specLen;tB=tekstLen;}else{tB=Math.min(tekstLen,Math.max(Math.round(TOTAL*0.55),TOTAL-specLen));sB=Math.min(specLen,TOTAL-tB);}
+      const budsjetter=[[sB,tB],[3000,3000],[1500,1500]]; let j=null,feil="";
+      for(const [s2,t2] of budsjetter){try{const innhold=[{type:"text",text:bygg(s2,t2)}];if(o.images&&o.images.length)o.images.forEach(b=>innhold.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:b}}));const txt=await ai(innhold,1000);if(!txt){feil="tomt svar";continue;}j=parseLoose(txt);if(j&&(j.oppdrag!=null||j.sammendrag))break;}catch(e){feil=e.message;}}
+      if(!j)throw new Error(feil||"tomt svar");
+      o.scores={oppdrag:j.oppdrag,kompetanse:j.kompetanse,fremdrift:j.fremdrift,forbehold:j.forbehold};
+      o.ai={sammendrag:j.sammendrag||"",begrunnelse:j.begrunnelse||"",styrker:j.styrker||[],svakheter:j.svakheter||[],avvik:j.avvik||[]};
+      if(!o.price&&Number(j.tilbudssum)>0){o.price=Math.round(Number(j.tilbudssum));if(o.mva==="ukjent")o.mva="eks";}
+      o.poster=(o.excelPoster&&o.excelPoster.length)?o.excelPoster:[];o.posterKilde=o.excelPoster&&o.excelPoster.length?"excel":null;
+    }catch(e){o.ai={sammendrag:"Kunne ikke fullføre: "+e.message,styrker:[],svakheter:[],avvik:[]};}
+    if((!o.poster||!o.poster.length)&&o.images&&o.images.length){const alle=[];for(let ci=0;ci<o.images.length;ci++){busy(`Leser poster fra bilde (${ci+1}/${o.images.length}) – ${o.company||o.name}…`);try{const pp=`Bildet viser side ${ci+1} av en byggkalkyle (NS 3451). Hent ALLE prisposter du ser: postnr, ns3451, beskrivelse, mengde, enhet, enhetspris, sum. Tom kolonne = null. Svar KUN JSON: {"poster":[{"postnr":"","ns3451":"","beskrivelse":"","mengde":null,"enhet":"","enhetspris":null,"sum":null}]}`;const txt=await ai([{type:"text",text:pp},{type:"image",source:{type:"base64",media_type:"image/jpeg",data:o.images[ci]}}],1000);const j=parseLoose(txt);if(Array.isArray(j.poster))alle.push(...j.poster.filter(p=>p&&(p.beskrivelse||p.sum!=null||p.enhetspris!=null||p.mengde!=null)));}catch(e){}}if(alle.length){o.poster=alle;o.posterKilde="ai-bilde";}}
+    // Tekst-PDF/Word uten Excel-poster og uten bilder: hent poster fra teksten i biter
+    if((!o.poster||!o.poster.length)&&o.text&&!(o.images&&o.images.length)&&/\d[\d \.]{3,}/.test(o.text)){
+      const full=o.text,CH=9000,OV=800,chunks=[];
+      for(let s=0;s<full.length;s+=(CH-OV)){chunks.push(full.slice(s,s+CH));if(s+CH>=full.length)break;}
+      const alle=[];
+      for(let ci=0;ci<chunks.length;ci++){busy(`Henter poster fra ${o.company||o.name} (del ${ci+1}/${chunks.length})…`);
+        try{const pp=`Dette er DEL ${ci+1} av ${chunks.length} av teksten fra et byggtilbud/kalkyle. Hent ALLE prisposter/prislinjer du finner i denne delen – enten det er en grov oppstilling på kapittel-/kontonivå (f.eks. "Kap 2 Bæresystemer ... 24 695 170" eller "02 Bæresystemer og bygg 30 883 390") ELLER en detaljert postliste (postnr, beskrivelse, enh, mengde, enhetspris, sum). Ta med hver linje som har en pris/sum, også de på løpende tekst. For hver: postnr (eller kapittelnr), ns3451 (bygningsdelsnr hvis oppgitt eller du kjenner igjen arbeidet), beskrivelse, mengde, enhet, enhetspris, sum. Ikke ta med rene totalsummer/"Sum eks mva". Tom verdi = null.
+
+TEKST (del ${ci+1}):
+${chunks[ci]}
+
+Svar KUN JSON, ingen priser i delen -> {"poster":[]}:
+{"poster":[{"postnr":"","ns3451":"","beskrivelse":"","mengde":null,"enhet":"","enhetspris":null,"sum":null}]}`;
+          const txt=await ai([{type:"text",text:pp}],1000);const j=parseLoose(txt);
+          if(Array.isArray(j.poster))alle.push(...j.poster.filter(p=>p&&(p.beskrivelse||p.sum!=null||p.enhetspris!=null||p.mengde!=null)));
+        }catch(e){}}
+      // dedup
+      const seen=new Set(),dd=[];alle.forEach(p=>{const k=(p.postnr||"")+"|"+(p.beskrivelse||"").slice(0,40).toLowerCase()+"|"+(p.sum??"");if(!seen.has(k)){seen.add(k);dd.push(p);}});
+      if(dd.length){o.poster=dd;o.posterKilde="ai-tekst";}
+    }
+  }
+  await matchPoster(); busy(""); await lagre(); render();
+}
+
+async function matchPoster(){
+  const wp=state.offers.filter(o=>o.poster&&o.poster.length);
+  if(!wp.length){state.postMatrix=null;return;}
+  busy("AI matcher poster (NS 3451)…");
+  try{
+    const payload=wp.map(o=>({tilbyder:o.company||o.name,poster:(o.poster||[]).map(p=>({postnr:p.postnr,ns3451:p.ns3451||"",beskrivelse:p.beskrivelse,mengde:p.mengde,enhet:p.enhet,enhetspris:p.enhetspris,sum:p.sum}))}));
+    const prompt=`Grupper prisposter fra flere byggtilbud og normaliser mot NS 3451 bygningsdelstabellen slik at like arbeider sammenlignes selv om tilbyderne nummererer ulikt. Begrunn grundig.
+
+DATA:
+${JSON.stringify(payload).slice(0,30000)}
+
+Svar KUN med gyldig JSON, konsist:
+{"grupper":[{"ns3451":"<nr>","bygningsdel":"<navn>","beskrivelse":"","enhet":"","priser":{"<tilbyder>":<sum eller null>},"kommentar":"<begrunnet>","konklusjon":"<begrunnet>"}]}
+Sorter etter NS 3451-nummer.`;
+    const full=wp.map(o=>({tilbyder:o.company||o.name,kilde:o.posterKilde||"ai",poster:o.poster||[]}));
+    const txt=await ai(prompt,1000);
+    if(!txt){state.postMatrix={grupper:[],tilbydere:wp.map(o=>o.company||o.name),full};}
+    else{const j=parseLoose(txt);state.postMatrix={grupper:j.grupper||[],tilbydere:wp.map(o=>o.company||o.name),full};}
+  }catch(e){state.postMatrix={grupper:[],tilbydere:wp.map(o=>o.company||o.name),full:wp.map(o=>({tilbyder:o.company||o.name,kilde:o.posterKilde||"ai",poster:o.poster||[]})),note:"Matching feilet: "+e.message};}
+  busy("");
+}
+
+function totals(){
+  const prices=state.offers.map(o=>tilEks(o.price,o.mva)).filter(p=>p>0);
+  const minP=prices.length?Math.min(...prices):0;
+  const wsum=Object.values(state.weights).reduce((a,b)=>a+Number(b),0)||1;
+  return state.offers.map(o=>{const eks=tilEks(o.price,o.mva);const priceScore=(eks>0&&minP)?Math.round(minP/eks*100):0;const s={pris:priceScore,...o.scores};let tot=0;CRITERIA.forEach(c=>tot+=(Number(s[c.key])||0)*(Number(state.weights[c.key])||0));return {...o,priceEks:eks,s,total:Math.round(tot/wsum)};}).sort((a,b)=>b.total-a.total);
+}
+function oppdragRanked(){const sc=state.offers.filter(o=>o.scores&&o.scores.oppdrag!=null);if(state.oppdragOrder){const m=Object.fromEntries(sc.map(o=>[o.id,o]));const ord=state.oppdragOrder.map(id=>m[id]).filter(Boolean);sc.forEach(o=>{if(!state.oppdragOrder.includes(o.id))ord.push(o);});return ord;}return [...sc].sort((a,b)=>(b.scores.oppdrag||0)-(a.scores.oppdrag||0));}
+
+function renderResult(){
+  const el=$("e_result"); if(!el)return;
+  const rows=totals(); if(!rows.length){el.innerHTML='<div style="color:var(--mut)">Ingen tilbud ennå.</div>';return;}
+  const best=rows[0]; let html="";
+  const ol=oppdragRanked();
+  if(ol.length){html+=`<div class="sec" style="margin-top:0">Rangering — oppdragsforståelse ${state.oppdragOrder?'<button class="btn ghost sm" id="opp_reset">↺ AI-forslag</button>':""}</div><div style="display:grid;gap:8px">`+
+    ol.map((o,i)=>`<div class="card row" style="border-color:${i===0?"var(--good)":"var(--line)"}"><b class="mono" style="font-size:18px;color:${i===0?"var(--good)":"var(--mut)"};min-width:34px">${i+1}.</b><div style="flex:1"><b>${esc(o.company||o.name)}</b>${o.ai?.sammendrag?`<div style="font-size:12px;color:var(--mut)">${esc(o.ai.sammendrag)}</div>`:""}</div><span class="mono">${o.scores.oppdrag}/100</span><span class="row"><button class="btn ghost sm" data-up="${o.id}" ${i===0?"disabled":""}>▲</button><button class="btn ghost sm" data-down="${o.id}" ${i===ol.length-1?"disabled":""}>▼</button></span></div>`).join("")+`</div>`;}
+  html+=`<div class="card" style="border-color:var(--good);margin:14px 0"><div class="mono" style="color:var(--good);font-size:11px">★ BEST SAMLET</div><div style="font-size:20px;font-weight:800">${esc(best.company||best.name)} — ${best.total} p</div><div style="color:var(--mut);font-size:13px">${fmt(best.priceEks)} eks. mva · ${esc(best.ai?.sammendrag||"AI ikke kjørt")}</div></div>`;
+  html+=`<div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th>#</th><th>Tilbyder</th><th style="text-align:right">Sum eks.mva</th>${CRITERIA.map(c=>`<th style="text-align:right">${c.label}</th>`).join("")}<th style="text-align:right">Total</th></tr></thead><tbody>`+
+    rows.map((o,i)=>`<tr style="background:${i===0?"rgba(54,201,141,.08)":"transparent"}"><td class="mono" style="font-weight:800;color:${i===0?"var(--good)":"var(--mut)"}">${i+1}</td><td><b>${esc(o.company||o.name)}</b></td><td class="mono" style="text-align:right">${o.priceEks?fmt(o.priceEks):"–"}${o.mva==="inkl"?" *":""}</td>${CRITERIA.map(c=>{const val=o.s[c.key];const top=Math.max(...rows.map(r=>r.s[c.key]||0));return `<td class="mono" style="text-align:right;color:${val&&val===top?"var(--good)":"var(--ink)"}">${val??"–"}</td>`;}).join("")}<td class="mono" style="text-align:right;font-weight:800;font-size:15px;color:${i===0?"var(--good)":"var(--ink)"}">${o.total}</td></tr>`).join("")+`</tbody></table></div>`;
+  html+=renderPostMatrix(rows);
+  html+=`<div style="display:grid;gap:12px;margin-top:18px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">`+
+    rows.filter(o=>o.ai).map((o,i)=>`<div class="card" style="border-color:${i===0?"var(--good)":"var(--line)"}"><b>${i+1}. ${esc(o.company||o.name)} · ${o.total} p</b>${o.ai.sammendrag?`<div style="font-size:13px;margin:6px 0;line-height:1.5">${esc(o.ai.sammendrag)}</div>`:""}${o.ai.begrunnelse?`<div style="font-size:12.5px;color:var(--mut);border-left:2px solid var(--line);padding-left:10px;margin-bottom:6px">${esc(o.ai.begrunnelse)}</div>`:""}${o.ai.styrker?.length?`<div style="font-size:12.5px;margin-bottom:5px"><span style="color:var(--good)">+ Styrker:</span> ${esc(o.ai.styrker.join("; "))}</div>`:""}${o.ai.svakheter?.length?`<div style="font-size:12.5px;margin-bottom:5px"><span style="color:var(--bad)">− Svakheter:</span> ${esc(o.ai.svakheter.join("; "))}</div>`:""}${o.ai.avvik?.length?`<div style="font-size:12.5px;color:var(--warn)">⚠ Avvik: ${esc(o.ai.avvik.join("; "))}</div>`:""}</div>`).join("")+`</div>`;
+  el.innerHTML=html;
+  if($("opp_reset"))$("opp_reset").onclick=()=>{state.oppdragOrder=null;renderResult();};
+  el.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>moveOpp(b.dataset.up,-1));
+  el.querySelectorAll("[data-down]").forEach(b=>b.onclick=()=>moveOpp(b.dataset.down,1));
+  bindPostMatrix();
+}
+function moveOpp(id,dir){const cur=oppdragRanked().map(o=>o.id);const i=cur.indexOf(id),j=i+dir;if(i<0||j<0||j>=cur.length)return;[cur[i],cur[j]]=[cur[j],cur[i]];state.oppdragOrder=cur;renderResult();}
+
+function pmTilbydere(){if(state.postMatrix?.tilbydere?.length)return state.postMatrix.tilbydere;return state.offers.map(o=>o.company||o.name);}
+function renderPostMatrix(rows){
+  const tb=pmTilbydere(); if(!tb.length)return "";
+  const grupper=(state.postMatrix&&!state.postMatrix.error)?(state.postMatrix.grupper||[]):[];
+  const sums={};tb.forEach(t=>sums[t]=0);grupper.forEach(g=>tb.forEach(t=>{const val=Number(g.priser?.[t]);if(val)sums[t]+=val;}));
+  let h=`<div class="sec">Postsammenligning — NS 3451 <button class="btn sm" id="pm_add">+ Legg til post</button></div>`;
+  if(!grupper.length)h+=`<div style="color:var(--mut);font-size:13px;margin-bottom:8px">Ingen poster ennå. Kjør evaluering, eller legg inn manuelt.</div>`;
+  if(grupper.length){h+=`<div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th style="min-width:240px">Post</th>${tb.map(t=>`<th style="text-align:right">${esc(t)}</th>`).join("")}<th></th></tr></thead><tbody>`+
+    grupper.map((g,gi)=>{const vals=tb.map(t=>Number(g.priser?.[t])||0).filter(v=>v>0);const min=vals.length?Math.min(...vals):0;
+      const postcell=g.manuell?`<div class="row"><input style="width:56px" placeholder="NS" value="${esc(g.ns3451||"")}" data-pg="${gi}" data-pf="ns3451"><input style="flex:1;min-width:120px" placeholder="Beskrivelse" value="${esc(g.beskrivelse||"")}" data-pg="${gi}" data-pf="beskrivelse"><input style="width:50px" placeholder="enh" value="${esc(g.enhet||"")}" data-pg="${gi}" data-pf="enhet"></div>`:`${(g.ns3451||g.bygningsdel)?`<span class="mono" style="color:var(--acc);font-size:10px;margin-right:6px">${esc(g.ns3451||"")} ${esc(g.bygningsdel||"")}</span>`:""}${esc(g.beskrivelse||"")}${g.enhet?` · ${esc(g.enhet)}`:""}`;
+      const komm=(g.kommentar||g.konklusjon)?`<tr><td colspan="${tb.length+2}" style="padding-left:24px;font-size:12px;color:var(--mut)">${g.kommentar?`<div><span style="color:var(--acc);font-family:var(--mono);font-size:10px">KOMMENTAR </span>${esc(g.kommentar)}</div>`:""}${g.konklusjon?`<div><span style="color:var(--good);font-family:var(--mono);font-size:10px">KONKLUSJON </span>${esc(g.konklusjon)}</div>`:""}</td></tr>`:"";
+      return `<tr><td>${postcell}</td>${tb.map(t=>{const val=g.priser?.[t];const best=Number(val)>0&&Number(val)===min;return `<td style="text-align:right"><input class="mono" style="text-align:right;color:${best?"var(--good)":"var(--ink)"}" placeholder="–" value="${val??""}" data-pp="${gi}" data-pt="${esc(t)}"></td>`;}).join("")}<td style="text-align:center"><button class="btn ghost sm" data-pdel="${gi}">✕</button></td></tr>${komm}`;
+    }).join("")+
+    `</tbody><tfoot><tr style="background:var(--panel2)"><td style="font-weight:800">Sum poster</td>${tb.map(t=>{const all=Object.values(sums).filter(x=>x>0);const min=all.length?Math.min(...all):0;const best=sums[t]>0&&sums[t]===min;return `<td class="mono" style="text-align:right;font-weight:800;color:${best?"var(--good)":"var(--ink)"}">${fmt(sums[t])}</td>`;}).join("")}<td></td></tr></tfoot></table></div>`;}
+  return h;
+}
+function bindPostMatrix(){
+  if($("pm_add"))$("pm_add").onclick=()=>{const tb=pmTilbydere();const ny={ns3451:"",beskrivelse:"",enhet:"",priser:{},kommentar:"",konklusjon:"",manuell:true};const base=(state.postMatrix&&!state.postMatrix.error)?state.postMatrix:{grupper:[],tilbydere:tb,full:[]};state.postMatrix={...base,tilbydere:base.tilbydere?.length?base.tilbydere:tb,grupper:[...(base.grupper||[]),ny]};renderResult();};
+  document.querySelectorAll("[data-pg]").forEach(el=>el.oninput=()=>{const g=state.postMatrix.grupper[+el.dataset.pg];g[el.dataset.pf]=el.value;});
+  document.querySelectorAll("[data-pp]").forEach(el=>el.oninput=()=>{const g=state.postMatrix.grupper[+el.dataset.pp];g.priser={...(g.priser||{})};g.priser[el.dataset.pt]=el.value===""?null:(num(el.value)||null);});
+  document.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=()=>{state.postMatrix.grupper=state.postMatrix.grupper.filter((_,i)=>i!=b.dataset.pdel);renderResult();});
+}
+
+function renderBrev(v){
+  v.innerHTML=`<div class="sec">Tilbudsbrev / forbeholdslister</div>
+  <p style="color:var(--mut);font-size:13px;margin-bottom:12px">Last opp tilbudsbrev og egne forbeholdsdokumenter. Brukes i forbeholdsanalysen.</p>
+  <div class="drop" id="b_drop"><div style="font-weight:800">Slipp tilbudsbrev her, eller klikk</div><div class="fmt">PDF · DOCX · TXT</div></div>
+  <input type="file" id="b_files" multiple accept=".pdf,.docx,.txt" class="hidden">
+  <div id="b_list" style="display:grid;gap:12px;margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))"></div>
+  <div style="margin-top:16px"><button class="btn" id="b_analyse">Analyser forbehold →</button></div>`;
+  $("b_drop").onclick=()=>$("b_files").click();$("b_drop").ondragover=e=>e.preventDefault();$("b_drop").ondrop=e=>{e.preventDefault();addBrev(e.dataTransfer.files);};$("b_files").onchange=e=>addBrev(e.target.files);
+  $("b_analyse").onclick=async()=>{await analyseForbehold();tab="forbehold";render();};
+  renderBrevList();
+}
+function renderBrevList(){const c=$("b_list");if(!c)return;c.innerHTML=state.brev.map(b=>`<div class="card"><div class="row" style="justify-content:space-between"><input value="${esc(b.company)}" data-bf="${b.id}" style="font-weight:700"><button class="btn ghost sm" data-bdel="${b.id}">✕</button></div><div style="max-height:220px;overflow:auto;font-size:12px;color:var(--mut);white-space:pre-wrap;margin-top:8px">${esc((b.text||"").slice(0,2000))}</div></div>`).join("");c.querySelectorAll("[data-bf]").forEach(i=>i.oninput=()=>{const b=state.brev.find(x=>x.id==i.dataset.bf);b.company=i.value;});c.querySelectorAll("[data-bdel]").forEach(b=>b.onclick=()=>{state.brev=state.brev.filter(x=>x.id!=b.dataset.bdel);renderBrevList();});}
+async function addBrev(list){for(const f of [...list]){busy("Leser "+f.name+"…");try{const {text,type}=await readFile(f);state.brev.push({id:Date.now()+"_"+Math.random().toString(36).slice(2,7),name:f.name,type,text,company:guessCompany(text,f.name)});}catch(e){alert(e.message);}}busy("");renderBrevList();}
+
+async function analyseForbehold(){
+  const kilder=[...state.brev.map(b=>({t:b.company||b.name,k:"tilbudsbrev",x:b.text})),...state.offers.map(o=>({t:o.company||o.name,k:"tilbud",x:o.text}))].filter(k=>k.x&&k.x.trim());
+  if(!kilder.length)return alert("Last opp tilbudsbrev eller tilbud først.");
+  const per={};kilder.forEach(k=>{(per[k.t]||=[]).push(k);});
+  busy("AI analyserer forbehold…");
+  try{const navn=Object.keys(per);const cap=Math.max(2000,Math.floor(40000/navn.length));
+    const payload=navn.map(n=>({tilbyder:n,tekst:per[n].map(k=>`[${k.k}] ${k.x}`).join("\n\n").slice(0,cap)}));
+    const prompt=`Finn ALLE forbehold, avvik og betingelser hver tilbyder har tatt. Grupper per tema slik at de kan sammenlignes.
+
+DATA:
+${JSON.stringify(payload).slice(0,40000)}
+
+Svar KUN med gyldig JSON, konsist (maks 12 temaer, korte tekster):
+{"tilbydere":["<navn>"],"forbehold":[{"tema":"","perTilbyder":{"<navn>":"<kort, eller 'Ingen'>"},"vurdering":"<kort>"}],"oppsummering":"<1-2 setn>"}`;
+    const txt=await ai(prompt,1000);const j=parseLoose(txt);
+    state.forbeholdMatrix={tilbydere:j.tilbydere?.length?j.tilbydere:navn,forbehold:j.forbehold||[],oppsummering:j.oppsummering||""};
+  }catch(e){state.forbeholdMatrix={error:e.message};}
+  busy("");await lagre();
+}
+function renderForbehold(v){
+  v.innerHTML=`<div class="sec">Forbeholdssammenligning</div><button class="btn" id="f_run">Kjør / oppdater forbeholdsanalyse</button><div id="f_res" style="margin-top:16px"></div>`;
+  $("f_run").onclick=async()=>{await analyseForbehold();render();};
+  const fm=state.forbeholdMatrix,el=$("f_res");
+  if(!fm){el.innerHTML='<div style="color:var(--mut)">Ikke kjørt ennå.</div>';return;}
+  if(fm.error){el.innerHTML='<div style="color:var(--warn)">Feil: '+esc(fm.error)+'</div>';return;}
+  let h="";if(fm.oppsummering)h+=`<div class="card" style="border-color:var(--good);margin-bottom:14px"><span class="mono" style="color:var(--good);font-size:10px">OPPSUMMERING </span>${esc(fm.oppsummering)}</div>`;
+  if(fm.forbehold?.length){h+=`<div style="overflow-x:auto;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th style="min-width:150px">Tema</th>${fm.tilbydere.map(t=>`<th style="min-width:160px">${esc(t)}</th>`).join("")}<th style="min-width:200px">Vurdering</th></tr></thead><tbody>`+
+    fm.forbehold.map(f=>`<tr><td style="font-weight:700">${esc(f.tema)}</td>${fm.tilbydere.map(t=>{const val=f.perTilbyder?.[t]||"–";const ingen=/^ingen$/i.test(String(val).trim());return `<td style="color:${ingen?"var(--good)":"var(--ink)"}">${ingen?"Ingen":esc(val)}</td>`;}).join("")}<td style="color:var(--mut)">${esc(f.vurdering||"–")}</td></tr>`).join("")+`</tbody></table></div>`;}
+  else h+='<div style="color:var(--mut)">Ingen forbehold funnet.</div>';
+  el.innerHTML=h;
+}
+
+function renderVedlegg(v){
+  v.innerHTML=`<div class="sec">Vedlegg / CV</div>
+  <p style="color:var(--mut);font-size:13px;margin-bottom:12px">Last opp CV/kompetansedokumenter. AI kobler til riktig entreprenør. Last opp tilbudene i Evaluering-fanen først.</p>
+  <div class="drop" id="v_drop"><div style="font-weight:800">Slipp CV/vedlegg her, eller klikk</div><div class="fmt">PDF · DOCX · XLSX · TXT</div></div>
+  <input type="file" id="v_files" multiple accept=".pdf,.docx,.xlsx,.xls,.txt" class="hidden">
+  <div id="v_list" style="display:grid;gap:10px;margin-top:14px"></div>`;
+  $("v_drop").onclick=()=>$("v_files").click();$("v_drop").ondragover=e=>e.preventDefault();$("v_drop").ondrop=e=>{e.preventDefault();addVedlegg(e.dataTransfer.files);};$("v_files").onchange=e=>addVedlegg(e.target.files);
+  renderVedleggList();
+}
+function renderVedleggList(){const c=$("v_list");if(!c)return;c.innerHTML=state.vedlegg.map(v=>`<div class="card row" style="justify-content:space-between"><div style="flex:1;min-width:180px"><b>${esc(v.name)}</b> <span class="tag">${v.type}</span>${v.koblingsbegrunnelse?`<div style="font-size:11.5px;color:var(--mut)">${esc(v.koblingsbegrunnelse)}</div>`:""}</div><div class="row"><label class="lb" style="margin:0">Koblet:</label><select data-vk="${v.id}" style="border-color:${v.koblet?"var(--good)":"var(--warn)"}"><option value="">— ikke koblet —</option>${state.offers.map(o=>`<option value="${esc(o.company||o.name)}"${v.koblet===(o.company||o.name)?" selected":""}>${esc(o.company||o.name)}</option>`).join("")}</select><button class="btn ghost sm" data-vdel="${v.id}">✕</button></div></div>`).join("");c.querySelectorAll("[data-vk]").forEach(s=>s.onchange=()=>{const v=state.vedlegg.find(x=>x.id==s.dataset.vk);v.koblet=s.value||null;});c.querySelectorAll("[data-vdel]").forEach(b=>b.onclick=()=>{state.vedlegg=state.vedlegg.filter(x=>x.id!=b.dataset.vdel);renderVedleggList();});}
+async function addVedlegg(list){const nye=[];for(const f of [...list]){busy("Leser "+f.name+"…");try{const {text,type}=await readFile(f);nye.push({id:Date.now()+"_"+Math.random().toString(36).slice(2,7),name:f.name,type,text,koblet:null});}catch(e){alert(e.message);}}
+  const kjente=state.offers.map(o=>o.company||o.name).filter(Boolean);
+  if(kjente.length){for(const vd of nye){busy("Kobler "+vd.name+"…");try{const p=`Entreprenører:\n${kjente.map((n,i)=>`${i+1}. ${n}`).join("\n")}\n\nHvilken tilhører dette vedlegget? VEDLEGG (${vd.name}):\n${(vd.text||"").slice(0,4000)}\n\nSvar KUN JSON: {"entreprenor":"<eksakt navn eller null>","begrunnelse":"<kort>"}`;const txt=await ai(p,1000);const j=parseLoose(txt);vd.koblet=(j.entreprenor&&kjente.includes(j.entreprenor))?j.entreprenor:null;vd.koblingsbegrunnelse=j.begrunnelse||"";}catch(e){vd.koblet=null;}}}
+  state.vedlegg.push(...nye);busy("");renderVedleggList();}
+
+function renderInnstilling(v){
+  v.innerHTML=`<div class="sec">Skriftlig innstilling</div>
+  <p style="color:var(--mut);font-size:13px;margin-bottom:12px">AI skriver en utfyllende innstilling – samlet og per tilbyder. Kjør evalueringen først.</p>
+  <button class="btn" id="in_run">Skriv / oppdater innstilling</button><div id="in_res" style="margin-top:16px"></div>`;
+  $("in_run").onclick=lagInnstilling;
+  const inn=state.innstilling,el=$("in_res");if(!inn)return;if(inn.error){el.innerHTML='<div style="color:var(--warn)">Feil: '+esc(inn.error)+'</div>';return;}
+  el.innerHTML=`<div class="card" style="border-color:var(--good);margin-bottom:16px"><div class="mono" style="color:var(--good);font-size:11px">SAMLET INNSTILLING</div><div style="font-size:14px;line-height:1.65;white-space:pre-wrap;margin-top:8px">${esc(inn.samlet)}</div></div>`+
+    Object.entries(inn.perTilbyder||{}).map(([n,t])=>`<div class="card" style="margin-bottom:12px"><b>${esc(n)}</b><div style="font-size:13.5px;line-height:1.6;white-space:pre-wrap;margin-top:8px">${esc(t)}</div></div>`).join("");
+}
+async function lagInnstilling(){
+  if(!state.offers.length)return alert("Last opp tilbud først.");
+  const rows=totals();busy("AI skriver innstilling…");
+  try{
+    const opps=rows.map((o,i)=>`${i+1}. ${o.company||o.name}: ${fmt(o.priceEks)} eks.mva, total ${o.total}. ${o.ai?.sammendrag||""}`).join("\n");
+    const fb=state.forbeholdMatrix?.oppsummering?`\nForbehold: ${state.forbeholdMatrix.oppsummering}`:"";
+    const samlet=await ai(`Skriv en utfyllende, profesjonell innstilling til byggherre om valg av entreprenør. Norsk, hele avsnitt, konkluder tydelig.\n\nRANGERING:\n${opps}${fb}\n\n3-5 avsnitt, ren tekst.`,1000);
+    const perTilbyder={};
+    for(const o of rows){busy("Skriver: "+(o.company||o.name)+"…");const vedl=state.vedlegg.filter(v=>v.koblet===(o.company||o.name)).map(v=>v.name).join(", ");
+      try{perTilbyder[o.company||o.name]=await ai(`Skriv utfyllende vurdering (norsk, hele avsnitt) av "${o.company||o.name}". Pris ${fmt(o.priceEks)} eks.mva. Score oppdrag ${o.scores?.oppdrag??"-"}, kompetanse ${o.scores?.kompetanse??"-"}, fremdrift ${o.scores?.fremdrift??"-"}, forbehold ${o.scores?.forbehold??"-"}, total ${o.total}. Sammendrag: ${o.ai?.sammendrag||""}. Styrker: ${(o.ai?.styrker||[]).join("; ")}. Svakheter: ${(o.ai?.svakheter||[]).join("; ")}.${vedl?` Vedlegg: ${vedl}.`:""}\n\n2-3 avsnitt, ren tekst.`,1000);}catch(e){perTilbyder[o.company||o.name]="(feil: "+e.message+")";}}
+    state.innstilling={samlet,perTilbyder};
+  }catch(e){state.innstilling={error:e.message};}
+  busy("");await lagre();render();
+}
+
+async function exportXlsx(){
+  const rows=totals();
+  if(!rows.length)return alert("Ingenting å eksportere ennå.");
+  const wb=XLSX.utils.book_new();
+
+  // ---- stilhjelpere ----
+  const C_ACC="FFFF7A18",C_INK="FF1C2530",C_HEAD="FF0E1217",C_GOOD="FF2E7D5B",C_LINE="FFD9DEE4",C_MUT="FFF2F5F8";
+  const C_WHITE="FFFFFFFF",C_RED="FFB23B3B",C_AMBER="FF9A7B00",C_GREY="FF5A6B7B",C_MUTTXT="FF7A8CA0";
+  const bd={style:"thin",color:{rgb:C_LINE}};
+  const border={top:bd,bottom:bd,left:bd,right:bd};
+  const H=(txt,span)=>({v:txt,t:"s",s:{font:{bold:true,sz:14,color:{rgb:C_WHITE}},fill:{patternType:"solid",fgColor:{rgb:C_HEAD}},alignment:{vertical:"center"}}});
+  const th=t=>({v:t,t:"s",s:{font:{bold:true,sz:10,color:{rgb:C_WHITE}},fill:{patternType:"solid",fgColor:{rgb:C_INK}},alignment:{horizontal:"left",vertical:"center",wrapText:true},border}});
+  const thR=t=>({...th(t),s:{...th(t).s,alignment:{horizontal:"right",vertical:"center",wrapText:true}}});
+  const td=(v,extra={})=>({v:v==null?"":v,t:typeof v==="number"?"n":"s",s:{font:{sz:10,color:{rgb:C_INK}},alignment:{vertical:"top",wrapText:true},border,...extra}});
+  const tdR=(v,bold,green)=>({v:v==null?"":v,t:typeof v==="number"?"n":"s",s:{font:{sz:10,bold:!!bold,color:{rgb:green?C_GOOD:C_INK}},alignment:{horizontal:"right",vertical:"center"},border,numFmt:'# ##0 "kr"'}});
+  const tdNum=(v,green)=>({v:v==null?"":v,t:typeof v==="number"?"n":"s",s:{font:{sz:10,bold:!!green,color:{rgb:green?C_GOOD:C_INK}},alignment:{horizontal:"right",vertical:"center"},border}});
+  const title=t=>({v:t,t:"s",s:{font:{bold:true,sz:16,color:{rgb:C_ACC}}}});
+  const sub=t=>({v:t,t:"s",s:{font:{italic:true,sz:10,color:{rgb:C_MUTTXT}}}});
+
+  // ===== ARK 1: EVALUERING (hele siden) =====
+  const A=[]; // array of rows (arrays of cell-objekter)
+  const push=r=>A.push(r);
+  const blank=()=>A.push([]);
+  push([title("Tilbudsevaluering – "+(state.prosjektNavn||""))]);
+  push([sub("Generert "+new Date().toLocaleString("nb-NO")+" · Alle summer eks. mva")]);
+  blank();
+
+  // Beste samlet
+  const best=rows[0];
+  push([{v:"★ BEST SAMLET",t:"s",s:{font:{bold:true,sz:11,color:{rgb:C_GOOD}}}}]);
+  push([{v:(best.company||best.name)+" — "+best.total+" poeng",t:"s",s:{font:{bold:true,sz:13,color:{rgb:C_INK}}}}]);
+  push([{v:fmt(best.priceEks)+" eks. mva · "+(best.ai?.sammendrag||""),t:"s",s:{font:{sz:10,color:{rgb:C_GREY}}}}]);
+  blank();
+
+  const NC=4+CRITERIA.length+1; // antall kolonner i rangeringstabellen (11)
+  const merges=[];
+  const rowH={}; // radindeks -> høyde i punkter
+  // total bredde i tegn over de sammenslåtte kolonnene (for høydeberegning)
+  const colWch=[7,34,16,8,...CRITERIA.map(()=>16),9];
+  const fullWch=colWch.reduce((a,b)=>a+b,0); // ~ tegn per linje ved full bredde
+  const settHøyde=(rIdx,tekst,bredde)=>{
+    const perLinje=Math.max(20,bredde*1.0);
+    const linjer=Math.max(1,Math.ceil(String(tekst||"").length/perLinje));
+    rowH[rIdx]=Math.max(15, linjer*14+4);
+  };
+  // merge tittel + best-samlet-rader (rad 0,1,3,4,5) over full bredde
+  [0,1,3,4,5].forEach(r=>merges.push({s:{r,c:0},e:{r,c:NC-1}}));
+  const wide=(cells,extra)=>{ // full-bredde tekstrad
+    merges.push({s:{r:A.length,c:0},e:{r:A.length,c:NC-1}});
+    settHøyde(A.length, cells&&cells.v, fullWch);
+    push([cells]);
+  };
+
+  // Rangeringstabell
+  push([{v:"RANGERING – TOTALSCORE",t:"s",s:{font:{bold:true,sz:11,color:{rgb:C_ACC}}}}]);
+  push([th("#"),th("Tilbyder"),thR("Sum eks. mva"),thR("Mva"),...CRITERIA.map(c=>thR(c.label)),thR("Total")]);
+  rows.forEach((o,i)=>{
+    const grønn=i===0;
+    push([
+      td(i+1,{alignment:{horizontal:"center"},font:{bold:true,sz:10,color:{rgb:grønn?C_GOOD:C_INK}}}),
+      td(o.company||o.name,{font:{bold:true,sz:10,color:{rgb:C_INK}}}),
+      tdR(o.priceEks||"",false,grønn),
+      td(o.mva,{alignment:{horizontal:"center"}}),
+      ...CRITERIA.map(c=>{const v=o.s[c.key];const top=Math.max(...rows.map(r=>r.s[c.key]||0));return tdNum(v??"",v&&v===top);}),
+      tdNum(o.total,grønn)
+    ]);
+  });
+  blank();blank();
+
+  // Oppdragsforståelse-rangering
+  const ol=oppdragRanked();
+  if(ol.length){
+    push([{v:"RANGERING – OPPDRAGSFORSTÅELSE"+(state.oppdragOrder?" (manuelt justert)":""),t:"s",s:{font:{bold:true,sz:11,color:{rgb:C_ACC}}}}]);
+    // header: Plass | Tilbyder | Score | Sammendrag(merge resten)
+    merges.push({s:{r:A.length,c:3},e:{r:A.length,c:NC-1}});
+    push([th("Plass"),th("Tilbyder"),thR("Score"),th("Sammendrag"),...Array(NC-4).fill(th(""))]);
+    ol.forEach((o,i)=>{
+      merges.push({s:{r:A.length,c:3},e:{r:A.length,c:NC-1}});
+      // sammendrag ligger over kolonne 3..10 -> bredde = sum av de kolonnene
+      settHøyde(A.length, o.ai?.sammendrag||"", 16+CRITERIA.length*16+9);
+      push([td(i+1,{alignment:{horizontal:"center"},font:{bold:true,color:{rgb:i===0?C_GOOD:C_INK}}}),td(o.company||o.name,{font:{bold:true}}),tdNum(o.scores.oppdrag,i===0),td(o.ai?.sammendrag||""),...Array(NC-4).fill(td(""))]);
+    });
+    blank();blank();
+  }
+
+  // Detaljer per tilbyder – alle lange tekster i full bredde
+  push([{v:"VURDERING PER TILBYDER",t:"s",s:{font:{bold:true,sz:11,color:{rgb:C_ACC}}}}]);
+  rows.filter(o=>o.ai).forEach((o,i)=>{
+    wide({v:(i+1)+". "+(o.company||o.name)+" · "+o.total+" p",t:"s",s:{font:{bold:true,sz:12,color:{rgb:C_INK}},fill:{patternType:"solid",fgColor:{rgb:C_MUT}},alignment:{vertical:"center"}}});
+    if(o.ai.sammendrag)wide(td(o.ai.sammendrag));
+    if(o.ai.begrunnelse)wide(td(o.ai.begrunnelse,{font:{sz:10,italic:true,color:{rgb:C_GREY}}}));
+    if(o.ai.styrker?.length)wide(td("+ Styrker: "+o.ai.styrker.join("; "),{font:{sz:10,color:{rgb:C_GOOD}}}));
+    if(o.ai.svakheter?.length)wide(td("− Svakheter: "+o.ai.svakheter.join("; "),{font:{sz:10,color:{rgb:C_RED}}}));
+    if(o.ai.avvik?.length)wide(td("⚠ Avvik: "+o.ai.avvik.join("; "),{font:{sz:10,color:{rgb:C_AMBER}}}));
+    blank();
+  });
+
+  const ws=XLSX.utils.aoa_to_sheet(A);
+  ws["!cols"]=[{wch:7},{wch:34},{wch:16},{wch:8},...CRITERIA.map(()=>({wch:16})),{wch:9}];
+  // tittel-rader + alle innsamlede merges
+  ws["!merges"]=merges;
+  ws["!rows"]=A.map((_,r)=>rowH[r]?{hpt:rowH[r]}:{});
+  XLSX.utils.book_append_sheet(wb,ws,"Evaluering");
+
+  // ===== ARK 2: POSTSAMMENLIGNING =====
+  if(state.postMatrix?.grupper?.length){
+    const tb=state.postMatrix.tilbydere;
+    const P=[];
+    P.push([title("Postsammenligning – normalisert mot NS 3451")]);
+    P.push([sub("Billigste pris per post er uthevet. Beløp eks. mva.")]);
+    P.push([]);
+    P.push([th("NS 3451"),th("Bygningsdel"),th("Beskrivelse"),th("Enhet"),...tb.map(t=>thR(t)),th("Kommentar"),th("Konklusjon")]);
+    const sums={};tb.forEach(t=>sums[t]=0);
+    const pRows={};
+    state.postMatrix.grupper.forEach(g=>{
+      const vals=tb.map(t=>Number(g.priser?.[t])||0).filter(v=>v>0);const min=vals.length?Math.min(...vals):0;
+      tb.forEach(t=>{const v=Number(g.priser?.[t]);if(v)sums[t]+=v;});
+      const lang=Math.max((g.kommentar||"").length,(g.konklusjon||"").length,(g.beskrivelse||"").length);
+      pRows[P.length]=Math.max(15,Math.ceil(lang/44)*14+4);
+      P.push([td(g.ns3451||"",{font:{sz:10,color:{rgb:C_ACC},bold:true}}),td(g.bygningsdel||""),td(g.beskrivelse||""),td(g.enhet||"",{alignment:{horizontal:"center"}}),
+        ...tb.map(t=>{const v=Number(g.priser?.[t]);return tdR(v||"",false,v>0&&v===min);}),
+        td(g.kommentar||""),td(g.konklusjon||"")]);
+    });
+    P.push([td("SUM POSTER",{font:{bold:true}}),td(""),td(""),td(""),...tb.map(t=>{const all=Object.values(sums).filter(x=>x>0);const min=all.length?Math.min(...all):0;return tdR(sums[t]||"",true,sums[t]>0&&sums[t]===min);}),td(""),td("")]);
+    const w2=XLSX.utils.aoa_to_sheet(P);
+    w2["!cols"]=[{wch:9},{wch:18},{wch:34},{wch:7},...tb.map(()=>({wch:16})),{wch:44},{wch:44}];
+    w2["!merges"]=[{s:{r:0,c:0},e:{r:0,c:5}},{s:{r:1,c:0},e:{r:1,c:5}}];
+    w2["!rows"]=P.map((_,r)=>pRows[r]?{hpt:pRows[r]}:{});
+    XLSX.utils.book_append_sheet(wb,w2,"Postsammenligning");
+  }
+
+  // ===== ARK 3: FORBEHOLD =====
+  if(state.forbeholdMatrix?.forbehold?.length){
+    const tb=state.forbeholdMatrix.tilbydere;
+    const F=[];
+    F.push([title("Forbeholdssammenligning")]);
+    if(state.forbeholdMatrix.oppsummering)F.push([sub(state.forbeholdMatrix.oppsummering)]);
+    F.push([]);
+    F.push([th("Tema"),...tb.map(t=>th(t)),th("Vurdering")]);
+    const fRows={};
+    state.forbeholdMatrix.forbehold.forEach(f=>{
+      const celler=[String(f.vurdering||""),...tb.map(t=>String(f.perTilbyder?.[t]||""))];
+      const lang=Math.max(...celler.map(c=>c.length),0);
+      fRows[F.length]=Math.max(15,Math.ceil(lang/28)*14+4);
+      F.push([td(f.tema,{font:{bold:true}}),...tb.map(t=>{const val=f.perTilbyder?.[t]||"–";const ingen=/^ingen$/i.test(String(val).trim());return td(ingen?"Ingen":val,{font:{sz:10,color:{rgb:ingen?C_GOOD:C_INK}}});}),td(f.vurdering||"",{font:{sz:10,color:{rgb:C_GREY}}})]);
+    });
+    const w3=XLSX.utils.aoa_to_sheet(F);
+    w3["!cols"]=[{wch:22},...tb.map(()=>({wch:28})),{wch:40}];
+    w3["!merges"]=[{s:{r:0,c:0},e:{r:0,c:tb.length}}];
+    w3["!rows"]=F.map((_,r)=>fRows[r]?{hpt:fRows[r]}:{});
+    XLSX.utils.book_append_sheet(wb,w3,"Forbehold");
+  }
+
+  // ===== ARK 4: INNSTILLING =====
+  if(state.innstilling&&!state.innstilling.error){
+    const I=[];const iRows={};
+    const pushI=(cell,tekst)=>{ if(tekst!=null) iRows[I.length]=Math.max(15,Math.ceil(String(tekst).length/108)*14+4); I.push([cell]); };
+    I.push([title("Skriftlig innstilling")]);I.push([]);
+    I.push([{v:"SAMLET INNSTILLING",t:"s",s:{font:{bold:true,sz:11,color:{rgb:C_GOOD}}}}]);
+    pushI(td(state.innstilling.samlet||""),state.innstilling.samlet);I.push([]);
+    Object.entries(state.innstilling.perTilbyder||{}).forEach(([n,t])=>{I.push([{v:n,t:"s",s:{font:{bold:true,sz:12,color:{rgb:C_INK}},fill:{patternType:"solid",fgColor:{rgb:C_MUT}}}}]);pushI(td(t),t);I.push([]);});
+    const w4=XLSX.utils.aoa_to_sheet(I);w4["!cols"]=[{wch:110}];
+    w4["!rows"]=I.map((_,r)=>iRows[r]?{hpt:iRows[r]}:{});
+    XLSX.utils.book_append_sheet(wb,w4,"Innstilling");
+  }
+
+  XLSX.writeFile(wb,(state.prosjektNavn||"Tilbudsevaluering")+".xlsx");
+}
+
+render();
+</script>
+</body>
+</html>
